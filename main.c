@@ -2,7 +2,7 @@
  * File:   UART incompleto
  * Author: Ulises
  *
- * Created on 10 de octubre de 2023, 11:43 AM
+ * Created on 16 de octubre de 2023, 11:43 AM
  */
 #pragma config BWRP = WRPROTECT_OFF     // Boot Segment Write Protect (Boot Segment may be written)
 #pragma config BSS = NO_FLASH           // Boot Segment Program Flash Code Protection (No Boot program Flash segment)
@@ -42,9 +42,10 @@
 // Use project enums instead of #define for ON and OFF.
 
 #include "xc.h"
+//#include "printing.h"
 
 #define FCY 40000000
-#define BAUDRATE 9600
+#define BAUDRATE 115200
 #define BRGVAL ((FCY/BAUDRATE)/16)-1
 unsigned int i;
 
@@ -61,7 +62,7 @@ int main(void) {
     TRISBbits.TRISB3 = 0;
     while(1){
         //LATBbits.LATB0 = 0;
-        U1TXREG = '2';
+        printf("Hola, %s! El numeroo winner es %f\r\n", "mundo", 2.2323287654);
         __delay_ms(1000);
         //LATBbits.LATB0 = 1;
         //__delay_ms(1000);   
