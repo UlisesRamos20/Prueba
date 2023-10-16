@@ -1,7 +1,7 @@
-**/..generated_files
-**/.build
-**/.debug
-**/.dist
-**/.nbproject
-**/.queuelogs
-**/.Makefile
+**/.generated_files
+**/build
+**/debug
+**/dist
+**/nbproject
+**/queuelogs
+**/Makefile

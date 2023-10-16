@@ -1,8 +1,8 @@
 /*
- * File:   UART incompleto
+ * File:   LED parpadeo
  * Author: Ulises
  *
- * Created on 10 de octubre de 2023, 11:43 AM
+ * Created on 5 de octubre de 2023, 11:43 AM
  */
 #pragma config BWRP = WRPROTECT_OFF     // Boot Segment Write Protect (Boot Segment may be written)
 #pragma config BSS = NO_FLASH           // Boot Segment Program Flash Code Protection (No Boot program Flash segment)
@@ -44,9 +44,6 @@
 #include "xc.h"
 
 #define FCY 40000000
-#define BAUDRATE 115200
-#define BRGVAL ((FCY/BAUDRATE)/16)-1
-unsigned int i;
 
 #include "libpic30.h"
 
@@ -55,26 +52,17 @@ void UART_config(void);
 
 int main(void) {
     os_config();
-    UART_config();
-    ADPCFG = 0xFFFF;
-    TRISBbits.TRISB1 = 1;
-    TRISBbits.TRISB3 = 0;
+    TRISBbits.TRISB0 = 0;
     while(1){
-        //LATBbits.LATB0 = 0;
-        U1TXREG = '23';
-        U1TXREG = 'o';
-        U1TXREG = 'l';
-        U1TXREG = 'a';
-        U1TXREG = ' ';
+        LATBbits.LATB0 = 0;
         __delay_ms(1000);
-        //LATBbits.LATB0 = 1;
-        //__delay_ms(1000);   
+        LATBbits.LATB0 = 1;
+        __delay_ms(1000);   
     }
     return 0;
 }
 
 void os_config(void){
-    OSCTUN = 0;     // Tune FRC oscillator, if FRC is used
     OSCCONbits.CLKLOCK = 0;
     OSCCONbits.COSC = 3;
     OSCCONbits.OSWEN = 0;
@@ -82,20 +70,4 @@ void os_config(void){
     PLLFBDbits.PLLDIV = 78;
     CLKDIVbits.DOZEN  = 1;
     CLKDIVbits.DOZE = 0;
-    while(OSCCONbits.LOCK != 1) {}; // Wait for PLL to lock
-    
-}
-
-void UART_config(void){
-    U1BRG = BRGVAL;       //9600 bps
-    U1MODEbits.PDSEL=0;     //8 bits de paridad
-    U1MODEbits.STSEL=0;     //1 bit de stop
-    U1MODEbits.ABAUD = 0;   // Auto-Baud desabilitado 
-    U1MODEbits.BRGH = 0;    //Modo de baja velocidad
-    RPINR18bits.U1RXR1 = 1; //Pin RX = RP1
-    RPOR0bits.RP0R = 3;     //Pin TX = RP0
-    
-    IEC0bits.U1TXIE = 0;    // Deshbabilita la interrupcion  UART TX 
-    U1MODEbits.UARTEN = 1;  // Habilta el UART 
-    U1STAbits.UTXEN = 1;    // Enable UART TX    
 }
