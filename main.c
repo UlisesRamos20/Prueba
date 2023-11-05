@@ -42,49 +42,71 @@
 // Use project enums instead of #define for ON and OFF.
 
 #include "xc.h"
-//#include "printing.h"
+#include "printing.h"
 
 #define FCY 40000000
 #define BAUDRATE 115200
 #define BRGVAL ((FCY/BAUDRATE)/16)-1
-unsigned int i;
+unsigned int i, cont=0;
 
 #include "libpic30.h"
 
 void os_config(void);
 void UART_config(void);
+void QEI_config(void);
+
 
 int main(void) {
     os_config();
     UART_config();
-    ADPCFG = 0xFFFF;
-    TRISBbits.TRISB1 = 1;
-    TRISBbits.TRISB3 = 0;
+    QEI_config();
+      
+    ADPCFG = 0xFFFF;    //Deshabilita todas las entradas anaogicas
+    // Configuración del motor
+    TRISBbits.TRISB4 = 0;
+    TRISBbits.TRISB5 = 0;
+    LATBbits.LATB4 = 0;
+    LATBbits.LATB5 = 0;
+    
     while(1){
-        //LATBbits.LATB0 = 0;
-        printf("Hola, %s! El numeroo winner es %f\r\n", "mundo", 2.2323287654);
-        __delay_ms(1000);
+        //Enciende los motores
+        LATBbits.LATB4 = 1;
+        LATBbits.LATB5 = 1;
+        //Lectura del encoder
+        cont = POS1CNT;
+        printf("Contador: %u \r\n",cont);
+        __delay_ms(10);
         //LATBbits.LATB0 = 1;
         //__delay_ms(1000);   
     }
     return 0;
 }
 
-void os_config(void){
-    OSCTUN = 0;     // Tune FRC oscillator, if FRC is used
-    OSCCONbits.CLKLOCK = 0;
-    OSCCONbits.COSC = 3;
-    OSCCONbits.OSWEN = 0;
-    CLKDIVbits.PLLPOST = 0;
-    PLLFBDbits.PLLDIV = 78;
-    CLKDIVbits.DOZEN  = 1;
-    CLKDIVbits.DOZE = 0;
-    while(OSCCONbits.LOCK != 1) {}; // Wait for PLL to lock
+
+
+void QEI_config(void){
+    QEI1CONbits.QEIM = 5; // Modo de 2x y el indice, conteo hasta MAXPOS1
+    QEI1CONbits.CNTERR = 0; // Sin detección de error de conteo
+    QEI1CONbits.UPDN = 0;
+    //QEI1CONbits.QEISIDL = 0; // Continuar funcionando en modo reposo
+    QEI1CONbits.SWPAB = 0; // No swap A y B
+    QEI1CONbits.PCDOUT = 0; // Sin dirección de conteo
     
+    // Configura los pines de entrada de QEI    
+    ADPCFGbits.PCFG2 = 1; // Deshabilita entrada analógica en B2
+    ADPCFGbits.PCFG3 = 1; // Deshabilita entrada analógica en B3
+    TRISBbits.TRISB2 = 1; // Configura B2 como entrada
+    TRISBbits.TRISB3 = 1; // Configura B3 como entrada
+
+    RPINR14bits.QEA1R = 2; // Asigna B2 como entrada A del QEI
+    RPINR14bits.QEB1R = 3; // Asigna B3 como entrada B del QEI
+    MAX1CNT = 65535;
+    POS1CNT = 0;
 }
 
+
 void UART_config(void){
-    U1BRG = BRGVAL;       //9600 bps
+    U1BRG = BRGVAL;         //115200 bps
     U1MODEbits.PDSEL=0;     //8 bits de paridad
     U1MODEbits.STSEL=0;     //1 bit de stop
     U1MODEbits.ABAUD = 0;   // Auto-Baud desabilitado 
@@ -94,5 +116,24 @@ void UART_config(void){
     
     IEC0bits.U1TXIE = 0;    // Deshbabilita la interrupcion  UART TX 
     U1MODEbits.UARTEN = 1;  // Habilta el UART 
-    U1STAbits.UTXEN = 1;    // Enable UART TX    
+    U1STAbits.UTXEN = 1;    // Enable UART TX   
+    
+    ADPCFGbits.PCFG0 = 1;   // Deshabilita entrada analógica en B0
+    ADPCFGbits.PCFG1 = 1;   // Deshabilita entrada analógica en B1
+    TRISBbits.TRISB0 = 1;   // Configura B0 como entrada
+    TRISBbits.TRISB1 = 0;   // Configura B1 como salida
+}
+
+
+void os_config(void){
+    OSCTUN = 0;                     // Tune FRC oscillator, if FRC is used
+    OSCCONbits.CLKLOCK = 0;
+    OSCCONbits.COSC = 3;
+    OSCCONbits.OSWEN = 0;
+    CLKDIVbits.PLLPOST = 0;
+    PLLFBDbits.PLLDIV = 78;
+    CLKDIVbits.DOZEN  = 1;
+    CLKDIVbits.DOZE = 0;
+    while(OSCCONbits.LOCK != 1) {}; // Wait for PLL to lock
+    
 }
