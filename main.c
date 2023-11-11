@@ -47,19 +47,21 @@
 #define FCY 40000000
 #define BAUDRATE 115200
 #define BRGVAL ((FCY/BAUDRATE)/16)-1
-unsigned int i, cont=0;
+unsigned int i, cont=0, x=1333;
 
 #include "libpic30.h"
 
 void os_config(void);
 void UART_config(void);
 void QEI_config(void);
+void PWM_config(void);
 
 
 int main(void) {
     os_config();
     UART_config();
     QEI_config();
+    PWM_config();
       
     ADPCFG = 0xFFFF;    //Deshabilita todas las entradas anaogicas
     // Configuración del motor
@@ -75,13 +77,34 @@ int main(void) {
         //Lectura del encoder
         cont = POS1CNT;
         printf("Contador: %u \r\n",cont);
-        __delay_ms(10);
+        
+        P1DC1 = x;
+        x=x+1;
+        printf("Velocidad: %u \r\n",x);
+        __delay_ms(1000);
         //LATBbits.LATB0 = 1;
         //__delay_ms(1000);   
     }
     return 0;
 }
 
+void PWM_config(void){
+   
+    P1TCONbits.PTMOD = 0;
+    P1TCONbits.PTCKPS = 0;
+    P1TCONbits.PTOPS = 0;
+    
+    P1TPER = 2666;  
+    
+    PWM1CON1bits.PMOD1 = 1;
+    PWM1CON1bits.PEN1H = 1;
+    
+    
+    PWM1CON2bits.IUE = 1;
+    
+    P1DC1 = 0;
+    P1TCONbits.PTEN = 1;
+}
 
 
 void QEI_config(void){
