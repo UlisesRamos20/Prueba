@@ -50,10 +50,20 @@
 //Global variables
 volatile unsigned int cont=0, cont_p=0;     //Pulse variables
 volatile unsigned int PT=0;                 //Previous time
-volatile unsigned int  pwm=1000;            //Duty_cycle
-int interval = 15625;                        //Time interval
-float pv; 
-float pps=0.0;
+volatile unsigned int  pwm=3000;               //Duty_cycle
+int interval = 15625;                       //Time interval
+float pv;                                   //Proces variable
+float sp;                                   //Set point
+float cv;                                   //Current value
+float cvp;                                  //cv previous
+float error;
+float error1;
+float error2;
+
+float Kp = 1;
+float Ki = 1;
+float Kd = 0.1;
+float Tm = 0.1;
 
 #include "libpic30.h"
 
@@ -85,6 +95,7 @@ int main(void) {
         //Lectura del encoder
         cont_p=cont;
         cont = POS1CNT;
+        pv = cont;
         
         unsigned int CT = TMR1;     //Current time
         unsigned int ET = CT-PT;    //Elapsed time
@@ -93,13 +104,36 @@ int main(void) {
         {
             P1DC1 = pwm;
             PT = CT;
-            printf("Contador: %u \r\n",cont);
-            printf("Timer: %u \r\n",TMR1);
-            pwm = pwm + 10;
-            printf("Pwm: %u \r\n",pwm);
+            if (cont != 0)
+            {
+                printf("pULSOS POR SEGUNDO: %u \r\n",cont);
+                printf("Timer: %u \r\n",TMR1);
+                pwm = pwm + 100;
+                if(pwm > 10600)
+                {
+                    pwm = 1000;
+                }
+                printf("Pwm: %u \r\n",pwm);
+            }
+            
+            //------Set point------
+            sp = 300;
+            error = sp - pv;
+            
+            //------Ecuacion diferencial------
+            cv = cvp + (Kp +Kd/Tm)*error + (-Kp + Ki*Tm - 2*Kd/Tm)*error1 + (Kd/Tm)*error2;
+            cvp = cv;                    //Recursividad
+            error2 = error1;
+            error1 = error;
+            
+            //------Saturacion de la salida del pid------
+            /*if*/
+            
+            
             TMR1 = 0;
             POS1CNT = 0;
         }
+        
         
         /*
         if(ET > 0)
