@@ -47,21 +47,29 @@
 #define FCY 40000000
 #define BAUDRATE 115200
 #define BRGVAL ((FCY/BAUDRATE)/16)-1
-unsigned int i, cont=0, x=1333;
+//Global variables
+volatile unsigned int cont=0, cont_p=0;     //Pulse variables
+volatile unsigned int PT=0;                 //Previous time
+volatile unsigned int  pwm=1000;            //Duty_cycle
+int interval = 15625;                        //Time interval
+float pv; 
+float pps=0.0;
 
 #include "libpic30.h"
 
 void os_config(void);
 void UART_config(void);
 void QEI_config(void);
-void PWM_config(void);
+void MCPWM_config(void);
+void TMR_config(void);
 
 
 int main(void) {
     os_config();
     UART_config();
     QEI_config();
-    PWM_config();
+    MCPWM_config();
+    TMR_config();
       
     ADPCFG = 0xFFFF;    //Deshabilita todas las entradas anaogicas
     // Configuración del motor
@@ -75,20 +83,64 @@ int main(void) {
         LATBbits.LATB4 = 1;
         LATBbits.LATB5 = 1;
         //Lectura del encoder
+        cont_p=cont;
         cont = POS1CNT;
-        printf("Contador: %u \r\n",cont);
         
-        P1DC1 = x;
-        x=x+1;
-        printf("Velocidad: %u \r\n",x);
+        unsigned int CT = TMR1;     //Current time
+        unsigned int ET = CT-PT;    //Elapsed time
+        
+        if(ET >= interval)
+        {
+            P1DC1 = pwm;
+            PT = CT;
+            printf("Contador: %u \r\n",cont);
+            printf("Timer: %u \r\n",TMR1);
+            pwm = pwm + 10;
+            printf("Pwm: %u \r\n",pwm);
+            TMR1 = 0;
+            POS1CNT = 0;
+        }
+        
+        /*
+        if(ET > 0)
+        {
+            pps = (float)(cont - cont_p) / ET * 1000.0;
+        }
+        */       
+            
+        //pv = cont*(60/(32/70));
+        
+        /*
+        PT = CT;
+        printf("Contador: %u \r\n",cont);
+        printf("Timer: %u \r\n",TMR1);
+        printf("Pulsos por segundo: %f \r\n",pps);
+        P1DC1 = pwm;
+        pwm = pwm + 100;
+        printf("Pwm: %u \r\n",pwm);
+        POS1CNT = 0;
+        TMR1 = 0;
         __delay_ms(1000);
+         */
+        
         //LATBbits.LATB0 = 1;
         //__delay_ms(1000);   
     }
     return 0;
 }
 
-void PWM_config(void){
+void TMR_config(void) {
+    T1CONbits.TON = 0;      // Detiene el temporizador
+    T1CONbits.TCS = 0;      // Fuentes de reloj interna (FOSC/2)
+    T1CONbits.TGATE = 0;    // Deshabilita Gated Timer mode
+    T1CONbits.TCKPS = 0b11; // Configura el pre-escaler a 1:256
+    TMR1 = 0;               // Reinicia el contador
+
+    IFS0bits.T1IF = 0;      // Limpia la bandera de interrupción
+    T1CONbits.TON = 1;      // Inicia el temporizador
+}
+
+void MCPWM_config(void){
    
     P1TCONbits.PTMOD = 0;
     P1TCONbits.PTCKPS = 0;
