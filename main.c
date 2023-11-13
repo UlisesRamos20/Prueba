@@ -50,7 +50,7 @@
 //Global variables
 volatile unsigned int cont=0, cont_p=0;     //Pulse variables
 volatile unsigned int PT=0;                 //Previous time
-volatile unsigned int  pwm=3000;               //Duty_cycle
+volatile unsigned int  pwm = 2000;               //Duty_cycle
 int interval = 15625;                       //Time interval
 float pv;                                   //Proces variable
 float sp;                                   //Set point
@@ -61,7 +61,7 @@ float error1;
 float error2;
 
 float Kp = 1;
-float Ki = 1;
+float Ki = 5;
 float Kd = 0.1;
 float Tm = 0.1;
 
@@ -108,27 +108,31 @@ int main(void) {
             {
                 printf("pULSOS POR SEGUNDO: %u \r\n",cont);
                 printf("Timer: %u \r\n",TMR1);
-                pwm = pwm + 100;
-                if(pwm > 10600)
-                {
-                    pwm = 1000;
+                pwm = pwm ;
+                 //------Set point------
+                sp = 100;
+                error = sp - pv;
+
+                //------Ecuacion diferencial------
+                cv = cvp + (Kp +Kd/Tm)*error + (-Kp + Ki*Tm - 2*Kd/Tm)*error1 + (Kd/Tm)*error2;
+                cvp = cv;                    //Recursividad
+                error2 = error1;
+                error1 = error;
+
+                //------Saturacion de la salida del pid------
+                if(cv > 346){
+                    cv = 346;
                 }
-                printf("Pwm: %u \r\n",pwm);
+                if(cv < 20){
+                    cv = 20;
+                }
+                pwm = cv*15.41;
+                
+                printf("set point: %u \r",sp);
+                printf("Process variable: %u \r",pv);
             }
             
-            //------Set point------
-            sp = 300;
-            error = sp - pv;
-            
-            //------Ecuacion diferencial------
-            cv = cvp + (Kp +Kd/Tm)*error + (-Kp + Ki*Tm - 2*Kd/Tm)*error1 + (Kd/Tm)*error2;
-            cvp = cv;                    //Recursividad
-            error2 = error1;
-            error1 = error;
-            
-            //------Saturacion de la salida del pid------
-            /*if*/
-            
+           
             
             TMR1 = 0;
             POS1CNT = 0;
