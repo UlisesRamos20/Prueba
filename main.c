@@ -50,7 +50,7 @@
 //Global variables
 volatile unsigned int cont=0, cont_p=0;     //Pulse variables
 volatile unsigned int PT=0;                 //Previous time
-volatile unsigned int  pwm = 2000;               //Duty_cycle
+volatile unsigned int  pwm = 2000;               //Duty_cycle minimo 2000
 int interval = 15625;                       //Time interval
 float pv;                                   //Proces variable
 float sp;                                   //Set point
@@ -110,7 +110,7 @@ int main(void) {
                 printf("Timer: %u \r\n",TMR1);
                 pwm = pwm ;
                  //------Set point------
-                sp = 100;
+                sp = 200;
                 error = sp - pv;
 
                 //------Ecuacion diferencial------
