@@ -1,8 +1,8 @@
 /*
- * File:   UART incompleto
+ * File:   Double motors
  * Author: Ulises
  *
- * Created on 16 de octubre de 2023, 11:43 AM
+ * Last modified: February 5th 2024 
  */
 #pragma config BWRP = WRPROTECT_OFF     // Boot Segment Write Protect (Boot Segment may be written)
 #pragma config BSS = NO_FLASH           // Boot Segment Program Flash Code Protection (No Boot program Flash segment)
@@ -12,7 +12,7 @@
 #pragma config GSS = OFF                // General Segment Code Protection (User program memory is not code-protected)
 
 // FOSCSEL
-#pragma config FNOSC = PRIPLL         // Oscillator Mode (Internal Fast RC (FRC) with divide by N)
+#pragma config FNOSC = PRIPLL           // Oscillator Mode (Internal Fast RC (FRC) with divide by N)
 #pragma config IESO = ON                // Internal External Switch Over Mode (Start-up device with FRC, then automatically switch to user-selected oscillator source when ready)
 
 // FOSC
@@ -50,12 +50,13 @@
 //Global variables
 volatile unsigned int cont=0, cont_p=0;     //Pulse variables
 volatile unsigned int PT=0;                 //Previous time
-volatile unsigned int  pwm = 2000;               //Duty_cycle minimo 2000
+volatile unsigned int  pwm1 = 2000;               //Duty_cycle minimo 2000
+volatile unsigned int  pwm2 = 2000;
 int interval = 15625;                       //Time interval
 float pv;                                   //Proces variable
 float sp;                                   //Set point
 float cv;                                   //Current value
-float cvp;                                  //cv previous
+float cvp;                                  //Previous value
 float error;
 float error1;
 float error2;
@@ -70,20 +71,24 @@ float Tm = 0.1;
 void os_config(void);
 void UART_config(void);
 void QEI_config(void);
-void MCPWM_config(void);
-void TMR_config(void);
+void MCPWM_config1(void);
+void MCPWM_config2(void);
+void TMR_config1(void);
+void TMR_config2(void);
 
 
 int main(void) {
     os_config();
     UART_config();
     QEI_config();
-    MCPWM_config();
-    TMR_config();
+    MCPWM_config1();
+    MCPWM_config2();
+    TMR_config1();
+    TMR_config2();
       
     ADPCFG = 0xFFFF;    //Deshabilita todas las entradas anaogicas
     // Configuración del motor
-    TRISBbits.TRISB4 = 0;
+    TRISBbits.TRISB4 = 0;           //pin rb4
     TRISBbits.TRISB5 = 0;
     LATBbits.LATB4 = 0;
     LATBbits.LATB5 = 0;
@@ -102,15 +107,20 @@ int main(void) {
         
         if(ET >= interval)
         {
-            P1DC1 = pwm;
+            P1DC1 = pwm1;
+            P2DC1 = pwm2;
             PT = CT;
             if (cont != 0)
             {
                 printf("pULSOS POR SEGUNDO: %u \r\n",cont);
                 printf("Timer: %u \r\n",TMR1);
-                pwm = pwm ;
+                printf("Timer: %u \r\n",TMR2);
+                printf("PWM: %u \r\n",pwm1);
+                printf("PWM: %u \r\n",pwm2);
+                pwm1 = pwm1;
+                pwm2 = pwm2;
                  //------Set point------
-                sp = 200;
+                sp = 600;
                 error = sp - pv;
 
                 //------Ecuacion diferencial------
@@ -126,7 +136,8 @@ int main(void) {
                 if(cv < 20){
                     cv = 20;
                 }
-                pwm = cv*15.41;
+                pwm1 = cv*15.41;
+                pwm2 = cv*15.41;
                 
                 printf("set point: %u \r",sp);
                 printf("Process variable: %u \r",pv);
@@ -135,6 +146,7 @@ int main(void) {
            
             
             TMR1 = 0;
+            TMR2 = 0;
             POS1CNT = 0;
         }
         
@@ -167,7 +179,7 @@ int main(void) {
     return 0;
 }
 
-void TMR_config(void) {
+void TMR_config1(void) {
     T1CONbits.TON = 0;      // Detiene el temporizador
     T1CONbits.TCS = 0;      // Fuentes de reloj interna (FOSC/2)
     T1CONbits.TGATE = 0;    // Deshabilita Gated Timer mode
@@ -178,7 +190,18 @@ void TMR_config(void) {
     T1CONbits.TON = 1;      // Inicia el temporizador
 }
 
-void MCPWM_config(void){
+void TMR_config2(void) {
+    T2CONbits.TON = 0;      // Detiene el temporizador
+    T2CONbits.TCS = 0;      // Fuentes de reloj interna (FOSC/2)
+    T2CONbits.TGATE = 0;    // Deshabilita Gated Timer mode
+    T2CONbits.TCKPS = 0b11; // Configura el pre-escaler a 1:256
+    TMR2 = 0;               // Reinicia el contador
+
+    IFS0bits.T2IF = 0;      // Limpia la bandera de interrupción
+    T2CONbits.TON = 1;      // Inicia el temporizador
+}
+
+void MCPWM_config1(void){
    
     P1TCONbits.PTMOD = 0;
     P1TCONbits.PTCKPS = 0;
@@ -194,6 +217,23 @@ void MCPWM_config(void){
     
     P1DC1 = 0;
     P1TCONbits.PTEN = 1;
+} 
+void MCPWM_config2(void){
+   
+    P2TCONbits.PTMOD = 0;
+    P2TCONbits.PTCKPS = 0;
+    P2TCONbits.PTOPS = 0;
+    
+    P2TPER = 2666;  
+    
+    PWM2CON1bits.PMOD1 = 1;
+    PWM2CON1bits.PEN1H = 1;
+    
+    
+    PWM2CON2bits.IUE = 1;
+    
+    P2DC1 = 0;
+    P2TCONbits.PTEN = 1;
 }
 
 
